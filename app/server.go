@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 
 	// Uncomment this block to pass the first stage
 	"net"
@@ -12,6 +13,10 @@ func processConn(conn net.Conn) {
 	buf := make([]byte, 1024)
 	length, err := conn.Read(buf)
 	if err != nil {
+		if err == io.EOF {
+			return
+		}
+
 		fmt.Println("error reading from client: ", err.Error())
 		os.Exit(1)
 	}
