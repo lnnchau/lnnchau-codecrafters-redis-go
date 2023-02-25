@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"io"
-	"strings"
 
 	"net"
 	"os"
@@ -23,14 +22,20 @@ func processConn(conn net.Conn) {
 
 	fmt.Printf("Message received:\n%s\n", string(buf[:length]))
 	
-	resp := parseMessage(buf[:length])
-	respMsg := "PONG"
+	resp := ParseRESP(buf[:length])
+	
+	command := resp[0]
+	args := resp[1:]
 
-	if (strings.ToLower(resp[0]) == "echo") {
-		respMsg = resp[1]
+	switch command {
+	case "echo":
+		echoMsg := args[0]
+		conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(echoMsg), echoMsg)))
+	case "ping":
+		conn.Write([]byte("+PONG\r\n"))
+	default:
+		conn.Write([]byte("+OK\r\n"))
 	}
-
-	conn.Write([]byte(fmt.Sprintf("+%s\r\n", respMsg)))
 }
 
 func handleConn(conn net.Conn) {

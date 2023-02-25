@@ -61,7 +61,7 @@ func processString(s []byte, firstIdx int) (string, int) {
 	return "", -1
 }
 
-func parseMessage(s []byte) ParsedMessage {
+func ParseRESP(s []byte) ParsedMessage {
 
 	i := 0
 	if string(s[i]) != ARRAY {
