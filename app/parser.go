@@ -14,6 +14,7 @@ const (
 
 type ParsedMessage []string
 
+
 func processArray(s []byte, firstIdx int) ([]string, int) {
 	fmt.Println("Processing array")
 	fmt.Printf("First index: %d\tValue: %s\n", firstIdx, string(s[firstIdx]))

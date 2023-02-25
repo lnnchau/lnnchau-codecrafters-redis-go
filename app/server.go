@@ -8,6 +8,10 @@ import (
 	"os"
 )
 
+
+var Dictionary map[string]string = make(map[string]string)
+
+
 func processConn(conn net.Conn) {
 	buf := make([]byte, 1024)
 	length, err := conn.Read(buf)
@@ -33,6 +37,17 @@ func processConn(conn net.Conn) {
 		conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(echoMsg), echoMsg)))
 	case "ping":
 		conn.Write([]byte("+PONG\r\n"))
+	case "set":
+		key := args[0]
+		value := args[1]
+		Dictionary[key] = value
+
+		conn.Write([]byte("+OK\r\n"))
+	case "get":
+		key := args[0]
+		value := Dictionary[key]
+
+		conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(value), value)))
 	default:
 		conn.Write([]byte("+OK\r\n"))
 	}
