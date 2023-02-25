@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"io"
+	"strings"
 
-	// Uncomment this block to pass the first stage
 	"net"
 	"os"
 )
@@ -22,8 +22,15 @@ func processConn(conn net.Conn) {
 	}
 
 	fmt.Printf("Message received:\n%s\n", string(buf[:length]))
+	
+	resp := parseMessage(buf[:length])
+	respMsg := "PONG"
 
-	conn.Write([]byte("+PONG\r\n"))
+	if (strings.ToLower(resp[0]) == "echo") {
+		respMsg = resp[1]
+	}
+
+	conn.Write([]byte(fmt.Sprintf("+%s\r\n", respMsg)))
 }
 
 func handleConn(conn net.Conn) {
