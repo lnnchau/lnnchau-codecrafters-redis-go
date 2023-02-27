@@ -9,10 +9,7 @@ import (
 )
 
 
-var Dictionary map[string]string = make(map[string]string)
-
-
-func processConn(conn net.Conn) {
+func processConn(conn net.Conn, storage Storage) {
 	buf := make([]byte, 1024)
 	length, err := conn.Read(buf)
 	if err != nil {
@@ -40,12 +37,13 @@ func processConn(conn net.Conn) {
 	case "set":
 		key := args[0]
 		value := args[1]
-		Dictionary[key] = value
+
+		storage.Set(key, value)
 
 		conn.Write([]byte("+OK\r\n"))
 	case "get":
 		key := args[0]
-		value := Dictionary[key]
+		value := storage.Get(key)
 
 		conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(value), value)))
 	default:
@@ -53,10 +51,10 @@ func processConn(conn net.Conn) {
 	}
 }
 
-func handleConn(conn net.Conn) {
+func handleConn(conn net.Conn, storage Storage) {
 	defer conn.Close()
 	for {
-		processConn(conn)
+		processConn(conn, storage)
 	}
 }
 
@@ -78,7 +76,9 @@ func main() {
 			fmt.Println("Error accepting connection: ", err.Error())
 			os.Exit(1)
 		}
+
+		storage := NewStorage()
 	
-		go handleConn(conn)
+		go handleConn(conn, storage)
 	}
 }
