@@ -53,9 +53,14 @@ func processConn(conn net.Conn, storage Storage) {
 		conn.Write([]byte("+OK\r\n"))
 	case "get":
 		key, _ := args[0].GetString()
-		value := storage.Get(key)
+		value, ok := storage.Get(key)
 
-		conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(value), value)))
+		if (ok) {
+			conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(value), value)))
+		} else {
+			conn.Write([]byte("$-1\r\n"))
+		}
+
 	default:
 		conn.Write([]byte("+OK\r\n"))
 	}

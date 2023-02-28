@@ -6,7 +6,7 @@ import (
 
 type Storage interface {
 	Set(key string, value string, expiryCmd string, expiryValue int64)
-	Get(key string) string
+	Get(key string) (string, bool)
 }
 
 type InMemoryStorage struct {
@@ -32,12 +32,14 @@ func (storage *InMemoryStorage) Set(key string, value string, expiryCmd string, 
 	}
 }
 
-func (storage *InMemoryStorage) Get(key string) (value string) {
+func (storage *InMemoryStorage) Get(key string) (value string, ok bool) {
 	expiry, hasExpiry := storage.expiry[key]
 
+	ok = false
 	if (!hasExpiry) || (hasExpiry && expiry >= time.Now().UnixMilli()) {
 		value = storage.data[key]
+		ok = true
 	}
 
-	return value
+	return value, ok
 }
