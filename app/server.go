@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"strconv"
 
 	"net"
 	"os"
@@ -23,26 +24,35 @@ func processConn(conn net.Conn, storage Storage) {
 
 	fmt.Printf("Message received:\n%s\n", string(buf[:length]))
 	
-	resp := ParseRESP(buf[:length])
+	resp, _ := ParseRESP(buf[:length]).GetArray()
 	
-	command := resp[0]
+	command, _ := resp[0].GetString()
 	args := resp[1:]
 
 	switch command {
 	case "echo":
-		echoMsg := args[0]
+		echoMsg, _ := args[0].GetString()
 		conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(echoMsg), echoMsg)))
 	case "ping":
 		conn.Write([]byte("+PONG\r\n"))
 	case "set":
-		key := args[0]
-		value := args[1]
+		key, _ := args[0].GetString()
+		value, _ := args[1].GetString()
 
-		storage.Set(key, value)
+		var expiryCmd string
+		var expiryValue int64
 
+		if len(args) > 2 {
+			expiryCmd, _ = args[2].GetString()
+
+			expiryValueInStr, _ := args[3].GetString()
+			expiryValue, _ = strconv.ParseInt(expiryValueInStr, 10, 64)
+		}
+
+		storage.Set(key, value, expiryCmd, expiryValue)
 		conn.Write([]byte("+OK\r\n"))
 	case "get":
-		key := args[0]
+		key, _ := args[0].GetString()
 		value := storage.Get(key)
 
 		conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(value), value)))

@@ -1,26 +1,43 @@
 package main
 
+import (
+	"time"
+)
+
 type Storage interface {
-	Set(key string, value string)
+	Set(key string, value string, expiryCmd string, expiryValue int64)
 	Get(key string) string
 }
 
 type InMemoryStorage struct {
 	data map[string]string;
-	expiry map[string]float64;
+	expiry map[string]int64;
 }
 
 func NewStorage() Storage {
 	return &InMemoryStorage{
 		data: make(map[string]string),
-		expiry: make(map[string]float64),
+		expiry: make(map[string]int64),
 	}
 }
 
-func (storage *InMemoryStorage) Set(key string, value string) {
+func (storage *InMemoryStorage) Set(key string, value string, expiryCmd string, expiryValue int64) {
 	storage.data[key] = value
+
+	switch expiryCmd {
+	case "px":
+		storage.expiry[key] = time.Now().UnixMilli() + expiryValue
+	case "ex":
+		storage.expiry[key] = time.Now().UnixMilli() + expiryValue * 1e3
+	}
 }
 
-func (storage *InMemoryStorage) Get(key string) string {
-	return storage.data[key]
+func (storage *InMemoryStorage) Get(key string) (value string) {
+	expiry, hasExpiry := storage.expiry[key]
+
+	if (!hasExpiry) || (hasExpiry && expiry >= time.Now().UnixMilli()) {
+		value = storage.data[key]
+	}
+
+	return value
 }

@@ -12,10 +12,29 @@ const (
 )
 
 
-type ParsedMessage []string
+type ParsedMessage struct {
+	dataType string;
+
+	stringValue string;
+	arrayValue []ParsedMessage;
+}
+
+func (p ParsedMessage) GetString() (string, error) {
+	if (p.dataType != BULK_STRING) {
+		return "", fmt.Errorf("Expect %s Got %s", BULK_STRING, p.dataType)
+	}
+	return p.stringValue, nil
+}
+
+func (p ParsedMessage) GetArray() ([]ParsedMessage, error) {
+	if (p.dataType != ARRAY) {
+		return nil, fmt.Errorf("Expect %s Got %s", ARRAY, p.dataType)
+	}
+	return p.arrayValue, nil
+}
 
 
-func processArray(s []byte, firstIdx int) ([]string, int) {
+func processArray(s []byte, firstIdx int) (ParsedMessage, int) {
 	fmt.Println("Processing array")
 	fmt.Printf("First index: %d\tValue: %s\n", firstIdx, string(s[firstIdx]))
 	arrayLen, _ := strconv.Atoi(string(s[firstIdx])) 
@@ -24,12 +43,20 @@ func processArray(s []byte, firstIdx int) ([]string, int) {
 	i := firstIdx + 1
 	count := 0
 
-	newArray := make([]string, arrayLen)
+	newArray := make([]ParsedMessage, arrayLen)
 
 	for i < len(s) {
-		if string(s[i]) == BULK_STRING {
+		switch string(s[i]) {
+		case BULK_STRING:
 			retrievedString, nextIdx := processString(s, i+1)
 			newArray[count] = retrievedString
+
+			i = nextIdx
+			count += 1
+
+		case ARRAY:
+			retrievedArray, nextIdx := processArray(s, i+1)
+			newArray[count] = retrievedArray
 
 			i = nextIdx
 			count += 1
@@ -42,11 +69,14 @@ func processArray(s []byte, firstIdx int) ([]string, int) {
 		}
 	}
 	
-	return newArray, i
+	return ParsedMessage{
+		dataType: ARRAY,
+		arrayValue: newArray,
+	}, i
 }
 
 
-func processString(s []byte, firstIdx int) (string, int) {
+func processString(s []byte, firstIdx int) (ParsedMessage, int) {
 	fmt.Println("Process string")
 	strLength, _ := strconv.Atoi(string(s[firstIdx])) 
 	fmt.Printf("There are %d characters\n", strLength)
@@ -55,11 +85,16 @@ func processString(s []byte, firstIdx int) (string, int) {
 		if string(s[i:i+2]) == "\r\n" {
 			firstIdxString := i + 2
 			endIdxString := firstIdxString + strLength
-			return string(s[firstIdxString:endIdxString]), endIdxString
+
+			return ParsedMessage{
+				dataType: BULK_STRING,
+				arrayValue: make([]ParsedMessage, 0),
+				stringValue: string(s[firstIdxString:endIdxString]),
+			}, endIdxString
 		}
 	}
 
-	return "", -1
+	return ParsedMessage{}, -1
 }
 
 func ParseRESP(s []byte) ParsedMessage {
